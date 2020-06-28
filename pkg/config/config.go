@@ -57,11 +57,11 @@ func Load(filename string) (*Config, error) {
 	defer f.Close()
 
 	var cfg Config
-	decoder := yaml.Decoder(f)
+	decoder := yaml.NewDecoder(f)
 	err = decoder.Decode(&cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return cfg, nil
+	return &cfg, nil
 }

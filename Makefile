@@ -3,3 +3,6 @@ build:
 
 fmt:
 	go fmt ./...
+
+run: build
+	./auth-proxy
