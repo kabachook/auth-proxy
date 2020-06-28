@@ -1,0 +1,19 @@
+listen: ":8989"
+
+authn:
+  jwt:
+    secret: "qwerty"
+
+authz:
+  ldap:
+    url: "ldap://localhost:389"
+    username: "cn=read-only-admin,dc=example,dc=com"
+    password: "password"
+
+backends:
+  - name: some_backend
+    endpoint: "http://localhost:8080"
+
+routes:
+- match: { prefix: "/" }
+  backend: some_backend
