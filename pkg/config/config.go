@@ -65,3 +65,11 @@ func Load(filename string) (*Config, error) {
 
 	return &cfg, nil
 }
+
+func BackendsToMap(backends []Backend) map[string]Backend {
+	m := make(map[string]Backend)
+	for _, b := range backends {
+		m[b.Name] = b
+	}
+	return m
+}
