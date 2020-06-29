@@ -9,7 +9,7 @@ type Proxy struct {
 	cfg config.Config
 }
 
-// NewProxy : creates new proxt
+// NewProxy : creates new proxy
 func NewProxy(cfg config.Config) *Proxy {
 	return &Proxy{
 		cfg: cfg,

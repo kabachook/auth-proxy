@@ -36,7 +36,7 @@ type Route struct {
 	Match struct {
 		Prefix string `yaml: "prefix"`
 	} `yaml: "match"`
-	Bakcend string `yaml: "backend"`
+	Backend string `yaml: "backend"`
 }
 
 // Config : main config struct
