@@ -19,15 +19,14 @@ func init() {
 
 func main() {
 	flag.Parse()
-	log.Printf("config: %s\n", configFile)
 
 	config, err := config.Load(configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("Loaded config: %+v\n", config)
 
 	proxy := proxy.New(*config)
-	log.Printf("proxy: %+v", proxy)
 	log.Printf("Started at %s", config.Listen)
 	log.Fatal(http.ListenAndServe(config.Listen, proxy))
 }

@@ -73,7 +73,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			backend, ok := p.backends[route.Backend]
 			if !ok {
 				log.Printf("ERROR: Can't find backend %s for host %s", route.Backend, route.Match.Host)
-				w.WriteHeader(http.StatusNotFound)
+				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 			r.URL.Scheme = backend.Scheme

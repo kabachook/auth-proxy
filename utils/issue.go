@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/dgrijalva/jwt-go"
-	jwtmiddleware "github.com/kabachook/auth-proxy/pkg/middlewares/jwt"
 )
 
 func main() {
@@ -16,7 +15,10 @@ func main() {
 		jwtKeyStr = "qwerty"
 	}
 	jwtKey := []byte(jwtKeyStr)
-	claims := &jwtmiddleware.Claims{
+	claims := struct {
+		Username string
+		jwt.StandardClaims
+	}{
 		Username: username,
 	}
 
