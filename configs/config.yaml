@@ -18,6 +18,6 @@ backends:
 
 routes:
 - match:
-    prefix: "/"
+    prefix: "/" # To be implemented
     host: "abc"
   backend: some_backend

@@ -25,7 +25,7 @@ type Claims struct {
 }
 
 func jwtKey() []byte {
-	return []byte(os.Getenv("JWT_TOKEN"))
+	return []byte(os.Getenv("JWT_KEY"))
 }
 
 type HTTPError struct {
@@ -93,7 +93,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf("Hello!\nYou called %s", r.URL.EscapedPath())))
+		w.Write([]byte(fmt.Sprintf("Hello!\nYou called %s\n%+v", r.URL.EscapedPath(), r.Header)))
 	})
 	mux.HandleFunc("/protected", func(w http.ResponseWriter, r *http.Request) {
 		claims, err := checkAuth(r)

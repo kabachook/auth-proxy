@@ -26,8 +26,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	proxy := proxy.NewProxy(*config)
-	log.Printf("proxy: %v", proxy)
+	proxy := proxy.New(*config)
+	log.Printf("proxy: %+v", proxy)
 	log.Printf("Started at %s", config.Listen)
 	log.Fatal(http.ListenAndServe(config.Listen, proxy))
 }

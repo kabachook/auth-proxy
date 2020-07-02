@@ -3,7 +3,8 @@ module github.com/kabachook/auth-proxy
 go 1.14
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
+	github.com/auth0/go-jwt-middleware v0.0.0-20200507191422-d30d7b9ece63
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gorilla/handlers v1.4.2
 	github.com/spf13/pflag v1.0.5
 	gopkg.in/yaml.v2 v2.3.0
