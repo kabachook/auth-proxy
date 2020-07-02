@@ -12,8 +12,12 @@ authz:
 
 backends:
   - name: some_backend
-    endpoint: "http://localhost:8080"
+    host: "localhost"
+    port: 8080
+    scheme: "http"
 
 routes:
-- match: { prefix: "/" }
+- match:
+    prefix: "/"
+    host: "abc"
   backend: some_backend

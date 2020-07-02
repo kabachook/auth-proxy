@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/kabachook/auth-proxy/pkg/config"
 	"github.com/kabachook/auth-proxy/pkg/proxy"
@@ -27,4 +28,6 @@ func main() {
 
 	proxy := proxy.NewProxy(*config)
 	log.Printf("proxy: %v", proxy)
+	log.Printf("Started at %s", config.Listen)
+	log.Fatal(http.ListenAndServe(config.Listen, proxy))
 }

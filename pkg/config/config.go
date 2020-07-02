@@ -27,14 +27,17 @@ type AuthzConfig struct {
 
 // Backend : backend struct
 type Backend struct {
-	Name     string `yaml: "name"`
-	Endpoint string `yaml: "endpoint"`
+	Name   string `yaml: "name"`
+	Host   string `yaml: "host"`
+	Port   int    `yaml: "port"`
+	Scheme string `yaml: "scheme"`
 }
 
 // Route : proxy route
 type Route struct {
 	Match struct {
 		Prefix string `yaml: "prefix"`
+		Host   string `yaml: "host"`
 	} `yaml: "match"`
 	Backend string `yaml: "backend"`
 }
@@ -66,6 +69,7 @@ func Load(filename string) (*Config, error) {
 	return &cfg, nil
 }
 
+// BackendsToMap coverts []Backend to map[Backend.Name]Backend
 func BackendsToMap(backends []Backend) map[string]Backend {
 	m := make(map[string]Backend)
 	for _, b := range backends {
