@@ -3,6 +3,7 @@ listen: ":8989"
 authn:
   jwt:
     secret: "qwerty"
+    field: "username"
 
 authz:
   ldap:

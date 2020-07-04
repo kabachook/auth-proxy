@@ -8,6 +8,11 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+type Claims struct {
+	Username string `json:"username"`
+	jwt.StandardClaims
+}
+
 func main() {
 	username := os.Args[1]
 	jwtKeyStr, ok := os.LookupEnv("JWT_KEY")
@@ -15,10 +20,7 @@ func main() {
 		jwtKeyStr = "qwerty"
 	}
 	jwtKey := []byte(jwtKeyStr)
-	claims := struct {
-		Username string
-		jwt.StandardClaims
-	}{
+	claims := &Claims{
 		Username: username,
 	}
 

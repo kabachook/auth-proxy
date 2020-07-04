@@ -13,6 +13,7 @@ import (
 type AuthnConfig struct {
 	JWT struct {
 		Secret string `yaml: "secret"`
+		Field  string `yaml: "field"`
 	} `yaml: "jwt"`
 }
 
