@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 
 	"github.com/kabachook/auth-proxy/pkg/config"
 )
@@ -19,6 +21,22 @@ type Proxy struct {
 	cfg      config.Config
 	backends map[string]config.Backend
 	handler  http.Handler
+}
+
+func loggingMiddleware(logger zap.Logger, cfg config.AuthnConfig) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// user := r.Context().Value("user")
+			// username, ok := user.(*jwt.Token).Claims.(jwt.MapClaims)[cfg.JWT.Field]
+			username := r.Context().Value(cfg.JWT.Field)
+			// if !ok {
+			// 	logger.Sugar().Error("Can't extract username from context")
+			// 	return
+			// }
+
+			logger.Sugar().Infow("Request", "host", r.Host, "url", r.URL.EscapedPath(), cfg.JWT.Field, username)
+		})
+	}
 }
 
 func authnMiddleware(cfg config.AuthnConfig) mux.MiddlewareFunc {
@@ -34,7 +52,7 @@ func authnMiddleware(cfg config.AuthnConfig) mux.MiddlewareFunc {
 			}
 
 			r.Header.Add("X-Username", fmt.Sprint(username))
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), cfg.JWT.Field, username)))
 		})
 	}
 }
@@ -78,7 +96,7 @@ func routingMiddleware(routes []config.Route, backends map[string]config.Backend
 }
 
 // New : creates new proxy
-func New(cfg config.Config) *Proxy {
+func New(cfg config.Config, logger zap.Logger) *Proxy {
 	router := mux.NewRouter()
 	reverseProxy := &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
@@ -95,6 +113,7 @@ func New(cfg config.Config) *Proxy {
 		}).Handler,
 		authnMiddleware(cfg.Authn),
 		routingMiddleware(cfg.Routes, config.BackendsToMap(cfg.Backends)),
+		loggingMiddleware(logger, cfg.Authn),
 	}
 
 	router.Use(middlewares...)

@@ -7,6 +7,7 @@ import (
 	"github.com/kabachook/auth-proxy/pkg/config"
 	"github.com/kabachook/auth-proxy/pkg/proxy"
 	flag "github.com/spf13/pflag"
+	"go.uber.org/zap"
 )
 
 var (
@@ -18,15 +19,19 @@ func init() {
 }
 
 func main() {
+	logger, _ := zap.NewProduction()
+	defer logger.Sync() // flushes buffer, if any
+	sugar := logger.Sugar()
+
 	flag.Parse()
 
 	config, err := config.Load(configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Loaded config: %+v\n", config)
+	sugar.Infof("Loaded config: %+v", config)
 
-	proxy := proxy.New(*config)
-	log.Printf("Started at %s", config.Listen)
-	log.Fatal(http.ListenAndServe(config.Listen, proxy))
+	proxy := proxy.New(*config, *logger)
+	sugar.Infof("Started at %s", config.Listen)
+	sugar.Fatal(http.ListenAndServe(config.Listen, proxy))
 }
