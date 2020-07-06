@@ -14,6 +14,11 @@ type Claims struct {
 }
 
 func main() {
+	if len(os.Args) < 2 {
+		fmt.Printf("Usage: %s <username>\nIssues JWT token for <username>\nJWT_KEY env var is used as secret", os.Args[0])
+		os.Exit(1)
+	}
+
 	username := os.Args[1]
 	jwtKeyStr, ok := os.LookupEnv("JWT_KEY")
 	if !ok {

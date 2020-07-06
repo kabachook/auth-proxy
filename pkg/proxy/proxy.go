@@ -23,18 +23,13 @@ type Proxy struct {
 	handler  http.Handler
 }
 
-func loggingMiddleware(logger zap.Logger, cfg config.AuthnConfig) mux.MiddlewareFunc {
+func loggingMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// user := r.Context().Value("user")
-			// username, ok := user.(*jwt.Token).Claims.(jwt.MapClaims)[cfg.JWT.Field]
 			username := r.Context().Value(cfg.JWT.Field)
-			// if !ok {
-			// 	logger.Sugar().Error("Can't extract username from context")
-			// 	return
-			// }
 
 			logger.Sugar().Infow("Request", "host", r.Host, "url", r.URL.EscapedPath(), cfg.JWT.Field, username)
+			next.ServeHTTP(w, r)
 		})
 	}
 }
@@ -57,7 +52,7 @@ func authnMiddleware(cfg config.AuthnConfig) mux.MiddlewareFunc {
 	}
 }
 
-func routingMiddleware(routes []config.Route, backends map[string]config.Backend) mux.MiddlewareFunc {
+func routingMiddleware(routes []config.Route, backends map[string]config.Backend, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			host := strings.Split(r.Host, ":")
@@ -76,7 +71,7 @@ func routingMiddleware(routes []config.Route, backends map[string]config.Backend
 					r.URL.Host = fmt.Sprintf("%s:%d", backend.Host, backend.Port)
 					r.Host = r.URL.Host
 
-					log.Printf("Found %s -> %s\n", host[0], r.URL)
+					logger.Sugar().Infof("Found %s -> %s\n", host[0], r.URL)
 					found = true
 				}
 				if found {
@@ -112,8 +107,8 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 			SigningMethod: jwt.SigningMethodHS256,
 		}).Handler,
 		authnMiddleware(cfg.Authn),
-		routingMiddleware(cfg.Routes, config.BackendsToMap(cfg.Backends)),
-		loggingMiddleware(logger, cfg.Authn),
+		routingMiddleware(cfg.Routes, config.BackendsToMap(cfg.Backends), logger),
+		loggingMiddleware(cfg.Authn, logger),
 	}
 
 	router.Use(middlewares...)

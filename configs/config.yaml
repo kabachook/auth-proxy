@@ -20,5 +20,5 @@ backends:
 routes:
 - match:
     prefix: "/" # To be implemented
-    host: "abc"
+    host: "abc" # "*" to match all hosts
   backend: some_backend
