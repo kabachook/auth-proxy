@@ -12,45 +12,51 @@ import (
 // AuthnConfig : Authentication config
 type AuthnConfig struct {
 	JWT struct {
-		Secret string `yaml: "secret"`
-		Field  string `yaml: "field"`
-	} `yaml: "jwt"`
+		Secret string `yaml:"secret"`
+		Field  string `yaml:"field"`
+	} `yaml:"jwt"`
+}
+
+type ACLEntry struct {
+	Action string   `yaml:"action"`
+	Users  []string `yaml:"users"`
+	Routes []string `yaml:"routes"`
 }
 
 // AuthzConfig : Authorization config
 type AuthzConfig struct {
 	LDAP struct {
-		URL      string `yaml: "url"`
-		Username string `yaml: "username"`
-		Password string `yaml: "password"`
-		BaseDN string `yaml: "base_dn"`
-	} `yaml: "ldap"`
+		URL      string `yaml:"url"`
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+		BaseDN   string `yaml:"base_dn"`
+	} `yaml:"ldap"`
+	ACL []ACLEntry `yaml:"acl"`
 }
 
 // Backend : backend struct
 type Backend struct {
-	Name   string `yaml: "name"`
-	Host   string `yaml: "host"`
-	Port   int    `yaml: "port"`
-	Scheme string `yaml: "scheme"`
+	Name   string `yaml:"name"`
+	Host   string `yaml:"host"`
+	Port   int    `yaml:"port"`
+	Scheme string `yaml:"scheme"`
 }
 
 // Route : proxy route
 type Route struct {
 	Match struct {
-		Prefix string `yaml: "prefix"`
-		Host   string `yaml: "host"`
-	} `yaml: "match"`
-	Backend string `yaml: "backend"`
+		Host string `yaml:"host"`
+	} `yaml:"match"`
+	Backend string `yaml:"backend"`
 }
 
 // Config : main config struct
 type Config struct {
-	Listen   string      `yaml: "listen"`
-	Authn    AuthnConfig `yaml: "authn"`
-	Authz    AuthzConfig `yaml: "authz"`
-	Backends []Backend   `yaml: "backends"`
-	Routes   []Route     `yaml: "routes"`
+	Listen   string      `yaml:"listen"`
+	Authn    AuthnConfig `yaml:"authn"`
+	Authz    AuthzConfig `yaml:"authz"`
+	Backends []Backend   `yaml:"backends"`
+	Routes   []Route     `yaml:"routes"`
 }
 
 // Load : loads config from file

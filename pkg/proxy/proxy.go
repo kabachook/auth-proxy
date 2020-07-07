@@ -3,8 +3,8 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"github.com/kabachook/auth-proxy/pkg/acl"
 	"github.com/kabachook/auth-proxy/pkg/authz"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -17,19 +17,23 @@ import (
 	"github.com/kabachook/auth-proxy/pkg/config"
 )
 
+var (
+	JWTIdentityField = "username"
+)
+
 // Proxy : auth-proxy struct
 type Proxy struct {
 	cfg      config.Config
 	backends map[string]config.Backend
 	handler  http.Handler
 	logger   zap.Logger
-	authz authz.Authz
+	authz    authz.Authz
 }
 
 func loggingMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			username := r.Context().Value(cfg.JWT.Field).(string)
+			username := r.Context().Value(JWTIdentityField).(string)
 
 			logger.Sugar().Infow("Request", "host", r.Host, "url", r.URL.EscapedPath(), cfg.JWT.Field, username)
 			next.ServeHTTP(w, r)
@@ -37,10 +41,12 @@ func loggingMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.Middleware
 	}
 }
 
-func authnMiddleware(cfg config.AuthnConfig) mux.MiddlewareFunc {
+func authnMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
+		l := logger.Named("authn")
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user := r.Context().Value("user")
+			l.Sugar().Debugf("got token: %+v", user.(*jwt.Token))
 
 			username, ok := user.(*jwt.Token).Claims.(jwt.MapClaims)[cfg.JWT.Field]
 			if !ok {
@@ -50,16 +56,20 @@ func authnMiddleware(cfg config.AuthnConfig) mux.MiddlewareFunc {
 			}
 
 			r.Header.Add("X-Username", fmt.Sprint(username)) // TODO: probably unhardcode header
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), cfg.JWT.Field, username)))
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), JWTIdentityField, username)))
 		})
 	}
 }
 
-func authzMiddleware(authz authz.Authz, cfg config.AuthnConfig, logger zap.Logger) mux.MiddlewareFunc {
+func authzMiddleware(authz authz.Authz, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
+		l := logger.Named("authz")
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			username := r.Context().Value(cfg.JWT.Field).(string)
+			username := r.Context().Value(JWTIdentityField).(string)
 			ok, err := authz.Authorize(username)
+
+			l.Sugar().Debugf("%s: %t", username, ok)
+
 			if err != nil {
 				logger.Sugar().Errorw(err.Error())
 				w.WriteHeader(http.StatusBadGateway)
@@ -75,8 +85,27 @@ func authzMiddleware(authz authz.Authz, cfg config.AuthnConfig, logger zap.Logge
 	}
 }
 
+func aclMiddleware(acl acl.ACL, logger zap.Logger) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		l := logger.Named("acl")
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			username := r.Context().Value(JWTIdentityField).(string)
+			pass := acl.Check(username, r.URL.Path)
+			l.Sugar().Debugf("ACL: %t ->  %s %s", pass, username, r.URL.Path)
+
+			if !pass {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func routingMiddleware(routes []config.Route, backends map[string]config.Backend, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
+		l := logger.Named("routing")
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			host := strings.Split(r.Host, ":")
 
@@ -86,7 +115,7 @@ func routingMiddleware(routes []config.Route, backends map[string]config.Backend
 				if route.Match.Host == "*" || route.Match.Host == host[0] {
 					backend, ok := backends[route.Backend]
 					if !ok {
-						log.Printf("ERROR: Can't find backend %s for host %s", route.Backend, route.Match.Host)
+						logger.Sugar().Errorf("ERROR: Can't find backend %s for host %s", route.Backend, route.Match.Host)
 						w.WriteHeader(http.StatusBadRequest)
 						return
 					}
@@ -94,7 +123,7 @@ func routingMiddleware(routes []config.Route, backends map[string]config.Backend
 					r.URL.Host = fmt.Sprintf("%s:%d", backend.Host, backend.Port)
 					r.Host = r.URL.Host
 
-					logger.Sugar().Infof("Found %s -> %s\n", host[0], r.URL)
+					l.Sugar().Infof("found %s -> %s\n", host[0], r.URL)
 					found = true
 				}
 				if found {
@@ -120,7 +149,7 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 		Director: func(req *http.Request) {
 		},
 	}
-	router.Handle("/", reverseProxy)
+	router.PathPrefix("/").Handler(reverseProxy)
 
 	ldapAuthz, err := authz.NewLDAPAuthz(cfg.Authz)
 	if err != nil {
@@ -138,8 +167,9 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 			},
 			SigningMethod: jwt.SigningMethodHS256,
 		}).Handler,
-		authnMiddleware(cfg.Authn),
-		authzMiddleware(ldapAuthz, cfg.Authn, logger),
+		authnMiddleware(cfg.Authn, logger),
+		authzMiddleware(ldapAuthz, logger),
+		aclMiddleware(acl.NewACLImpl(cfg.Authz.ACL), logger),
 		routingMiddleware(cfg.Routes, config.BackendsToMap(cfg.Backends), logger),
 		loggingMiddleware(cfg.Authn, logger),
 	}
@@ -151,7 +181,7 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 		backends: config.BackendsToMap(cfg.Backends),
 		handler:  router,
 		logger:   logger,
-		authz: ldapAuthz,
+		authz:    ldapAuthz,
 	}
 }
 
@@ -166,7 +196,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p.handler.ServeHTTP(w, r)
 }
 
-func (p *Proxy) Handler() http.Handler{
+func (p *Proxy) Handler() http.Handler {
 	return p.handler
 }
 

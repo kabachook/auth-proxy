@@ -11,6 +11,13 @@ authz:
     username: "cn=readonly,dc=example,dc=org"
     password: "readonly"
     base_dn: "dc=example,dc=org"
+  acl:
+    - action: allow
+      users:
+        - jdoe
+      routes:
+        - /hello
+
 
 backends:
   - name: some_backend
@@ -20,6 +27,5 @@ backends:
 
 routes:
 - match:
-    prefix: "/" # To be implemented
-    host: "abc" # "*" to match all hosts
+    host: "*" # "*" to match all hosts
   backend: some_backend

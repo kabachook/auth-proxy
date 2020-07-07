@@ -68,8 +68,6 @@ func (a *LDAPAuthz) Authorize(username string) (bool, error) {
 		default:
 			return false, err
 		}
-	} else if err.(*ldap.Error).ResultCode == ldap.LDAPResultNoSuchObject {
-		return false, nil
 	}
 
 	if len(sr.Entries) < 1 {

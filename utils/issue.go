@@ -1,9 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
-	"os"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -13,20 +14,26 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-func main() {
-	if len(os.Args) < 2 {
-		fmt.Printf("Usage: %s <username>\nIssues JWT token for <username>\nJWT_KEY env var is used as secret", os.Args[0])
-		os.Exit(1)
-	}
+var (
+	username  string
+	duration  time.Duration
+	jwtKeyStr string
+)
 
-	username := os.Args[1]
-	jwtKeyStr, ok := os.LookupEnv("JWT_KEY")
-	if !ok {
-		jwtKeyStr = "qwerty"
-	}
+func init() {
+	flag.StringVar(&username, "username", "jdoe", "token username")
+	flag.DurationVar(&duration, "duration", time.Minute*10, "token duration")
+	flag.StringVar(&jwtKeyStr, "jwt_key", "qwerty", "JWT key")
+	flag.Parse()
+}
+
+func main() {
 	jwtKey := []byte(jwtKeyStr)
 	claims := &Claims{
-		Username: username,
+		username,
+		jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(duration).Unix(),
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

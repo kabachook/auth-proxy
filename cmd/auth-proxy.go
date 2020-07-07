@@ -24,16 +24,17 @@ func init() {
 }
 
 func main() {
-	logger, _ := zap.NewProduction()
-	defer logger.Sync() // flushes buffer, if any
-	sugar := logger.Sugar()
-
 	flag.Parse()
 
 	config, err := config.Load(configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync() // flushes buffer, if any
+	sugar := logger.Sugar()
+
 	sugar.Infof("Loaded config: %+v", config)
 
 	proxy := proxy.New(*config, *logger)
