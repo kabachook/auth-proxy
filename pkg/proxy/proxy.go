@@ -23,6 +23,7 @@ type Proxy struct {
 	backends map[string]config.Backend
 	handler  http.Handler
 	logger   zap.Logger
+	authz authz.Authz
 }
 
 func loggingMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.MiddlewareFunc {
@@ -125,6 +126,10 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 	if err != nil {
 		logger.Sugar().Fatalw("Error creating LDAPAuthz", err.Error())
 	}
+	err = ldapAuthz.Open()
+	if err != nil {
+		logger.Sugar().Fatalw("Can't open LDAP connection", err.Error())
+	}
 
 	middlewares := []mux.MiddlewareFunc{
 		jwtmiddleware.New(jwtmiddleware.Options{
@@ -146,6 +151,7 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 		backends: config.BackendsToMap(cfg.Backends),
 		handler:  router,
 		logger:   logger,
+		authz: ldapAuthz,
 	}
 }
 
@@ -158,4 +164,13 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	p.handler.ServeHTTP(w, r)
+}
+
+func (p *Proxy) Handler() http.Handler{
+	return p.handler
+}
+
+func (p *Proxy) Shutdown() {
+	p.logger.Sugar().Info("Closing connections")
+	p.authz.Close()
 }

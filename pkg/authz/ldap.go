@@ -9,31 +9,45 @@ import (
 // LDAPAuthz is a basic LDAP Authorizer
 // Authorizes user if it exists in LDAP
 type LDAPAuthz struct {
-	conn ldap.Conn
+	conn *ldap.Conn
 	cfg  config.AuthzConfig
 }
 
 func NewLDAPAuthz(cfg config.AuthzConfig) (*LDAPAuthz, error) {
-	// Not sure if connection should happen in the constructor
-	conn, err := ldap.DialURL(cfg.LDAP.URL)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = conn.SimpleBind(&ldap.SimpleBindRequest{
-		Username: cfg.LDAP.Username,
-		Password: cfg.LDAP.Password,
-	})
-	if err != nil {
-		return nil, err
-	}
 	return &LDAPAuthz{
-		conn: *conn,
+		conn: nil,
 		cfg:  cfg,
 	}, nil
 }
 
+func (a *LDAPAuthz) Open() error {
+	conn, err := ldap.DialURL(a.cfg.LDAP.URL)
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.SimpleBind(&ldap.SimpleBindRequest{
+		Username: a.cfg.LDAP.Username,
+		Password: a.cfg.LDAP.Password,
+	})
+	if err != nil {
+		return err
+	}
+	a.conn = conn
+	return nil
+}
+
+func (a *LDAPAuthz) Close() {
+	if a.conn != nil {
+		a.conn.Close()
+	}
+}
+
 func (a *LDAPAuthz) Authorize(username string) (bool, error) {
+	if a.conn == nil {
+		return false, fmt.Errorf("connection is not opened")
+	}
+
 	req := ldap.NewSearchRequest(
 		a.cfg.LDAP.BaseDN,
 		ldap.ScopeWholeSubtree,
