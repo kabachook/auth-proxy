@@ -33,8 +33,8 @@ type LDAP struct {
 
 // AuthzConfig : Authorization config
 type AuthzConfig struct {
-	LDAP LDAP `yaml:"ldap"`
-	ACL []ACLEntry `yaml:"acl"`
+	LDAP LDAP       `yaml:"ldap"`
+	ACL  []ACLEntry `yaml:"acl"`
 }
 
 // Backend : backend struct
@@ -53,6 +53,12 @@ type Route struct {
 	Backend string `yaml:"backend"`
 }
 
+// Proxy: proxy configuration
+type Proxy struct {
+	// Header: Send user identity in this header
+	Header string `yaml:"header"`
+}
+
 // Config : main config struct
 type Config struct {
 	Listen   string      `yaml:"listen"`
@@ -60,6 +66,7 @@ type Config struct {
 	Authz    AuthzConfig `yaml:"authz"`
 	Backends []Backend   `yaml:"backends"`
 	Routes   []Route     `yaml:"routes"`
+	Proxy    Proxy       `yaml:"proxy"`
 }
 
 // Load : loads config from file

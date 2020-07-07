@@ -41,21 +41,21 @@ func loggingMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.Middleware
 	}
 }
 
-func authnMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.MiddlewareFunc {
+func authnMiddleware(authnConfig config.AuthnConfig, proxyConfig config.Proxy, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		l := logger.Named("authn")
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user := r.Context().Value("user")
 			l.Sugar().Debugf("got token: %+v", user.(*jwt.Token))
 
-			username, ok := user.(*jwt.Token).Claims.(jwt.MapClaims)[cfg.JWT.Field]
+			username, ok := user.(*jwt.Token).Claims.(jwt.MapClaims)[authnConfig.JWT.Field]
 			if !ok {
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("Error getting username"))
 				return
 			}
 
-			r.Header.Add("X-Username", fmt.Sprint(username)) // TODO: probably unhardcode header
+			r.Header.Add(proxyConfig.Header, fmt.Sprint(username)) // TODO: probably unhardcode header
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), JWTIdentityField, username)))
 		})
 	}
@@ -167,7 +167,7 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 			},
 			SigningMethod: jwt.SigningMethodHS256,
 		}).Handler,
-		authnMiddleware(cfg.Authn, logger),
+		authnMiddleware(cfg.Authn, cfg.Proxy, logger),
 		authzMiddleware(ldapAuthz, logger),
 		aclMiddleware(acl.NewACLImpl(cfg.Authz.ACL), logger),
 		routingMiddleware(cfg.Routes, config.BackendsToMap(cfg.Backends), logger),

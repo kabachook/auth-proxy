@@ -30,3 +30,6 @@ routes:
 - match:
     host: "*" # "*" to match all hosts
   backend: some_backend
+
+proxy:
+  header: "X-Username"
