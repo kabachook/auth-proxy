@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"github.com/kabachook/auth-proxy/pkg/authz"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -21,12 +22,13 @@ type Proxy struct {
 	cfg      config.Config
 	backends map[string]config.Backend
 	handler  http.Handler
+	logger   zap.Logger
 }
 
 func loggingMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			username := r.Context().Value(cfg.JWT.Field)
+			username := r.Context().Value(cfg.JWT.Field).(string)
 
 			logger.Sugar().Infow("Request", "host", r.Host, "url", r.URL.EscapedPath(), cfg.JWT.Field, username)
 			next.ServeHTTP(w, r)
@@ -41,13 +43,33 @@ func authnMiddleware(cfg config.AuthnConfig) mux.MiddlewareFunc {
 
 			username, ok := user.(*jwt.Token).Claims.(jwt.MapClaims)[cfg.JWT.Field]
 			if !ok {
-				w.WriteHeader(http.StatusBadRequest)
+				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("Error getting username"))
 				return
 			}
 
-			r.Header.Add("X-Username", fmt.Sprint(username))
+			r.Header.Add("X-Username", fmt.Sprint(username)) // TODO: probably unhardcode header
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), cfg.JWT.Field, username)))
+		})
+	}
+}
+
+func authzMiddleware(authz authz.Authz, cfg config.AuthnConfig, logger zap.Logger) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			username := r.Context().Value(cfg.JWT.Field).(string)
+			ok, err := authz.Authorize(username)
+			if err != nil {
+				logger.Sugar().Errorw(err.Error())
+				w.WriteHeader(http.StatusBadGateway)
+				return
+			}
+			if !ok {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }
@@ -99,6 +121,11 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 	}
 	router.Handle("/", reverseProxy)
 
+	ldapAuthz, err := authz.NewLDAPAuthz(cfg.Authz)
+	if err != nil {
+		logger.Sugar().Fatalw("Error creating LDAPAuthz", err.Error())
+	}
+
 	middlewares := []mux.MiddlewareFunc{
 		jwtmiddleware.New(jwtmiddleware.Options{
 			ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
@@ -107,6 +134,7 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 			SigningMethod: jwt.SigningMethodHS256,
 		}).Handler,
 		authnMiddleware(cfg.Authn),
+		authzMiddleware(ldapAuthz, cfg.Authn, logger),
 		routingMiddleware(cfg.Routes, config.BackendsToMap(cfg.Backends), logger),
 		loggingMiddleware(cfg.Authn, logger),
 	}
@@ -117,9 +145,17 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 		cfg:      cfg,
 		backends: config.BackendsToMap(cfg.Backends),
 		handler:  router,
+		logger:   logger,
 	}
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if err := recover(); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			p.logger.Sugar().Error(err)
+		}
+	}()
+
 	p.handler.ServeHTTP(w, r)
 }

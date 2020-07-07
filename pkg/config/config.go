@@ -23,6 +23,7 @@ type AuthzConfig struct {
 		URL      string `yaml: "url"`
 		Username string `yaml: "username"`
 		Password string `yaml: "password"`
+		BaseDN string `yaml: "base_dn"`
 	} `yaml: "ldap"`
 }
 

@@ -8,8 +8,9 @@ authn:
 authz:
   ldap:
     url: "ldap://localhost:389"
-    username: "cn=read-only-admin,dc=example,dc=com"
-    password: "password"
+    username: "cn=readonly,dc=example,dc=org"
+    password: "readonly"
+    base_dn: "dc=example,dc=org"
 
 backends:
   - name: some_backend

@@ -1,0 +1,23 @@
+version: 1
+
+# Entry 3: cn=John Doe,dc=example,dc=org
+dn: cn=John Doe,dc=example,dc=org
+cn: John Doe
+gidnumber: 500
+givenname: John
+homedirectory: /home/users/jdoe
+loginshell: /bin/bash
+objectclass: inetOrgPerson
+objectclass: posixAccount
+objectclass: top
+sn: Doe
+uid: jdoe
+uidnumber: 1000
+userpassword: {MD5}2FeO34RYzgb7xbt2pYxcpA==
+
+# Entry 5: cn=users,dc=example,dc=org
+dn: cn=users,dc=example,dc=org
+cn: users
+gidnumber: 500
+objectclass: posixGroup
+objectclass: top
