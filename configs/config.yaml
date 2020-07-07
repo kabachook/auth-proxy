@@ -1,4 +1,4 @@
-listen: ":8989"
+listen: ":8989" # address to listen
 
 authn:
   jwt:
@@ -12,13 +12,12 @@ authz:
     password: "readonly"
     base_dn: "dc=example,dc=org"
     filter: "(uid=%s)" # LDAP filter, C-style format string
-  acl: # ACL list, support only allow actionm default action deny
+  acl: # ACL list, only supports allow action, default action is deny
     - action: allow
       users:
         - jdoe
       routes: # Exact matches
         - /hello
-
 
 backends:
   - name: some_backend
@@ -27,9 +26,9 @@ backends:
     scheme: "http"
 
 routes:
-- match:
-    host: "*" # "*" to match all hosts
-  backend: some_backend
+  - match:
+      host: "*" # "*" to match all hosts
+    backend: some_backend
 
 proxy:
-  header: "X-Username"
+  header: "X-Username" # identity header for backend

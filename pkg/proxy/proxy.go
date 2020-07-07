@@ -35,7 +35,7 @@ func loggingMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.Middleware
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			username := r.Context().Value(JWTIdentityField).(string)
 
-			logger.Sugar().Infow("Request", "host", r.Host, "url", r.URL.EscapedPath(), cfg.JWT.Field, username)
+			logger.Sugar().Infow("request", "host", r.Host, "url", r.URL.EscapedPath(), cfg.JWT.Field, username)
 			next.ServeHTTP(w, r)
 		})
 	}
