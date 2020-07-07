@@ -5,6 +5,9 @@ Protects your backends using JWT + LDAP
 ## Quickstart
 
 Bring up LDAP server and test backend (terminal 1):
+
+> you should have Docker installed
+
 ```bash
 cd integration
 docker-compose up -d
@@ -39,7 +42,7 @@ go run utils/issue.go --username jdoe --duration 5m
 
 Now you can send requests to port `8989`
 
-Server expects a token in `Auhtorization: Bearer <token>` header
+Server expects a token in `Authorization: Bearer <token>` header
 
 ## How it works
 
@@ -88,6 +91,13 @@ routes:
 
 proxy:
   header: "X-Username" # identity header for backend
+```
+
+## Build
+
+```bash
+make build
+./auth-proxy
 ```
 
 ## Task
