@@ -31,7 +31,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger, _ := zap.NewDevelopment()
+	logger, _ := zap.NewProduction()
 	defer logger.Sync() // flushes buffer, if any
 	sugar := logger.Sugar()
 

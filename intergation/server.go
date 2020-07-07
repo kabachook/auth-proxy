@@ -23,8 +23,12 @@ func init() {
 func main() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		username := r.Header["x-username"][0]
+	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var username string
+		usernameArr, ok := r.Header["X-Username"]
+		if ok {
+			username = usernameArr[0]
+		}
 		resp := fmt.Sprintf(
 			"Hello!\nYou called %s\nHeaders: %+v\nUsername: %+v",
 			r.URL.EscapedPath(),
