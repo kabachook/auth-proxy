@@ -30,6 +30,7 @@ type Proxy struct {
 	authz    authz.Authz
 }
 
+// loggingMiddleware logs requests, depending on a position in middleware chain
 func loggingMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -41,6 +42,7 @@ func loggingMiddleware(cfg config.AuthnConfig, logger zap.Logger) mux.Middleware
 	}
 }
 
+// authnMiddleware gets user from context and sets identity field for following middlewares
 func authnMiddleware(authnConfig config.AuthnConfig, proxyConfig config.Proxy, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		l := logger.Named("authn")
@@ -55,12 +57,13 @@ func authnMiddleware(authnConfig config.AuthnConfig, proxyConfig config.Proxy, l
 				return
 			}
 
-			r.Header.Add(proxyConfig.Header, fmt.Sprint(username)) // TODO: probably unhardcode header
+			r.Header.Add(proxyConfig.Header, fmt.Sprint(username))
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), JWTIdentityField, username)))
 		})
 	}
 }
 
+// authzMiddleware authenticates request based on identity field from context using authz
 func authzMiddleware(authz authz.Authz, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		l := logger.Named("authz")
@@ -85,6 +88,7 @@ func authzMiddleware(authz authz.Authz, logger zap.Logger) mux.MiddlewareFunc {
 	}
 }
 
+// aclMiddleware authenticates request based on identity field and path access control list
 func aclMiddleware(acl acl.ACL, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		l := logger.Named("acl")
@@ -103,6 +107,7 @@ func aclMiddleware(acl acl.ACL, logger zap.Logger) mux.MiddlewareFunc {
 	}
 }
 
+// routingMiddleware provides routing features, i.e. routes requests to backends
 func routingMiddleware(routes []config.Route, backends map[string]config.Backend, logger zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		l := logger.Named("routing")
@@ -169,7 +174,7 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 		}).Handler,
 		authnMiddleware(cfg.Authn, cfg.Proxy, logger),
 		authzMiddleware(ldapAuthz, logger),
-		aclMiddleware(acl.NewACLImpl(cfg.Authz.ACL), logger),
+		aclMiddleware(acl.NewSimpleACL(cfg.Authz.ACL), logger),
 		routingMiddleware(cfg.Routes, config.BackendsToMap(cfg.Backends), logger),
 		loggingMiddleware(cfg.Authn, logger),
 	}

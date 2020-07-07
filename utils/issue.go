@@ -1,12 +1,13 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	flag "github.com/spf13/pflag"
 )
 
 type Claims struct {
@@ -21,9 +22,14 @@ var (
 )
 
 func init() {
-	flag.StringVar(&username, "username", "jdoe", "token username")
-	flag.DurationVar(&duration, "duration", time.Minute*10, "token duration")
-	flag.StringVar(&jwtKeyStr, "jwt_key", "qwerty", "JWT key")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Issue an JWT token\n")
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+	flag.StringVarP(&username, "username", "u", "jdoe", "token username")
+	flag.DurationVarP(&duration, "duration", "d", time.Minute*10, "token duration")
+	flag.StringVarP(&jwtKeyStr, "key", "k", "qwerty", "JWT key")
 	flag.Parse()
 }
 

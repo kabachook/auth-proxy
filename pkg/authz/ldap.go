@@ -7,7 +7,7 @@ import (
 )
 
 // LDAPAuthz is a basic LDAP Authorizer
-// Authorizes user if it exists in LDAP
+// Authorizes user if LDAP search query with filter returns non-zero result
 type LDAPAuthz struct {
 	conn *ldap.Conn
 	cfg  config.LDAP
@@ -61,7 +61,7 @@ func (a *LDAPAuthz) Authorize(username string) (bool, error) {
 	)
 
 	sr, err := a.conn.Search(req)
-	if err != nil && err.(*ldap.Error).ResultCode != ldap.LDAPResultNoSuchObject {
+	if err != nil {
 		switch e := err.(*ldap.Error).ResultCode; {
 		case e == ldap.LDAPResultNoSuchObject:
 			return false, nil
