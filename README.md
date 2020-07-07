@@ -17,6 +17,20 @@ Run auth-proxy (terminal 2):
 ```bash
 go run cmd/auth-proxy -c configs/config.yaml
 ```
+
+Test:
+```bash
+❯ curl -H "Authorization: Bearer eyJh..." http://localhost:8989/hello?abc=xyz -i
+HTTP/1.1 200 OK
+Content-Length: 291
+Content-Type: text/plain; charset=utf-8
+Date: Tue, 07 Jul 2020 08:01:36 GMT
+
+Hello!
+You called /hello
+Headers: map[Accept:[*/*] Accept-Encoding:[gzip] Authorization:[Bearer eyJh...] User-Agent:[curl/7.68.0] X-Forwarded-For:[127.0.0.1] X-Username:[jdoe]]
+Username: jdoe
+```
 ---
 To issue a JWT token use:
 ```bash
