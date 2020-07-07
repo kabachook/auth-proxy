@@ -23,14 +23,17 @@ type ACLEntry struct {
 	Routes []string `yaml:"routes"`
 }
 
+type LDAP struct {
+	URL      string `yaml:"url"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	BaseDN   string `yaml:"base_dn"`
+	Filter   string `yaml:"filter"`
+}
+
 // AuthzConfig : Authorization config
 type AuthzConfig struct {
-	LDAP struct {
-		URL      string `yaml:"url"`
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-		BaseDN   string `yaml:"base_dn"`
-	} `yaml:"ldap"`
+	LDAP LDAP `yaml:"ldap"`
 	ACL []ACLEntry `yaml:"acl"`
 }
 

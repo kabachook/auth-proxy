@@ -10,10 +10,10 @@ import (
 // Authorizes user if it exists in LDAP
 type LDAPAuthz struct {
 	conn *ldap.Conn
-	cfg  config.AuthzConfig
+	cfg  config.LDAP
 }
 
-func NewLDAPAuthz(cfg config.AuthzConfig) (*LDAPAuthz, error) {
+func NewLDAPAuthz(cfg config.LDAP) (*LDAPAuthz, error) {
 	return &LDAPAuthz{
 		conn: nil,
 		cfg:  cfg,
@@ -21,14 +21,14 @@ func NewLDAPAuthz(cfg config.AuthzConfig) (*LDAPAuthz, error) {
 }
 
 func (a *LDAPAuthz) Open() error {
-	conn, err := ldap.DialURL(a.cfg.LDAP.URL)
+	conn, err := ldap.DialURL(a.cfg.URL)
 	if err != nil {
 		return err
 	}
 
 	_, err = conn.SimpleBind(&ldap.SimpleBindRequest{
-		Username: a.cfg.LDAP.Username,
-		Password: a.cfg.LDAP.Password,
+		Username: a.cfg.Username,
+		Password: a.cfg.Password,
 	})
 	if err != nil {
 		return err
@@ -49,13 +49,13 @@ func (a *LDAPAuthz) Authorize(username string) (bool, error) {
 	}
 
 	req := ldap.NewSearchRequest(
-		a.cfg.LDAP.BaseDN,
+		a.cfg.BaseDN,
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
 		0,
 		0,
 		false,
-		fmt.Sprintf("(uid=%s)", username), // TODO: probably unhardcode filter
+		fmt.Sprintf(a.cfg.Filter, username),
 		[]string{"dn", "cn"},
 		nil,
 	)

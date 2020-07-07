@@ -151,7 +151,7 @@ func New(cfg config.Config, logger zap.Logger) *Proxy {
 	}
 	router.PathPrefix("/").Handler(reverseProxy)
 
-	ldapAuthz, err := authz.NewLDAPAuthz(cfg.Authz)
+	ldapAuthz, err := authz.NewLDAPAuthz(cfg.Authz.LDAP)
 	if err != nil {
 		logger.Sugar().Fatalw("Error creating LDAPAuthz", err.Error())
 	}

@@ -2,8 +2,8 @@ listen: ":8989"
 
 authn:
   jwt:
-    secret: "qwerty"
-    field: "username"
+    secret: "qwerty" # JWT secret
+    field: "username" # JSON field in payload which identifies user
 
 authz:
   ldap:
@@ -11,11 +11,12 @@ authz:
     username: "cn=readonly,dc=example,dc=org"
     password: "readonly"
     base_dn: "dc=example,dc=org"
-  acl:
+    filter: "(uid=%s)" # LDAP filter, C-style format string
+  acl: # ACL list, support only allow actionm default action deny
     - action: allow
       users:
         - jdoe
-      routes:
+      routes: # Exact matches
         - /hello
 
 
